@@ -5,7 +5,6 @@ namespace App\Storage;
 use App\Storage\Contracts\StorageInterface;
 
 
-
 class DatabaseStorage implements StorageInterface
 {
     protected $db;
@@ -19,12 +18,26 @@ class DatabaseStorage implements StorageInterface
     {
         $this->key = $key;
         $this->value = $value;
-
-        $statement = $this->db->prepare("INSERT INTO storage (id, value) VALUES (:id, :value)");
-        $statement->execute([
-            'id' => $this->key,
-            'value' => $this->value,
-        ]);
+        $statement = $this->db->prepare('SELECT * FROM storage WHERE id = :id');
+        $statement->execute(['id' => $key]);
+        $result = $statement->fetch();
+        if(!empty($result)){
+            $statement = $this->db->prepare("UPDATE storage SET id = :id, value = :value WHERE id = :id");
+            $values = [
+                'id' => $this->key,
+                'value' => serialize($this->value),
+            ];
+            $statement->execute($values);
+            return $this->db->lastInsertId();
+        }
+        else{
+            $statement = $this->db->prepare("INSERT INTO storage (id, value) VALUES (:id, :value)");
+            $statement->execute([
+                'id' => $this->key,
+                'value' => serialize($this->value),
+            ]);
+        }
+        
         return $this->db->lastInsertId();
     }
 
@@ -34,7 +47,7 @@ class DatabaseStorage implements StorageInterface
         $statement->execute(['id' => $key]);
         $result = $statement->fetch();
         if(!empty($result)){
-            return $result['value'];
+            return unserialize($result['value']);
         }
     }
 
@@ -56,9 +69,13 @@ class DatabaseStorage implements StorageInterface
         $statement = $this->db->prepare('SELECT * FROM storage');
         $statement->execute();
         $result = $statement->fetchAll();
+        $items = [];
         if(count($result) <= 0){
             return;
         }
-        return $result;
+        foreach($result as $value){
+            $items[] = unserialize($value['value']);
+        }
+        return $items;
     }
 }

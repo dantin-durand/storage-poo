@@ -15,11 +15,12 @@ try {
 //$store = new App\Storage\FileStorage;
 
 // DATABASE //
-//$store = new App\Storage\DatabaseStorage($pdo);
+$store = new App\Storage\DatabaseStorage($pdo);
 
 
 $store->set('name', 'Clement');
 $store->set('age', 33);
+$store->set('age', 43);
 $store->delete('name');
 $store->destroy();
 echo $store->get('age');
